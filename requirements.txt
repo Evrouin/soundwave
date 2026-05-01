@@ -1,0 +1,25 @@
+# API
+fastapi==0.136.1
+uvicorn==0.34.0
+redis==4.6.0
+
+# Orchestration
+apache-airflow==3.2.1
+
+# Processing
+pyspark==4.1.1
+delta-spark==4.2.0
+
+# Modeling
+dbt-core==1.11.8
+dbt-trino==1.10.1
+
+# ML / Features
+feast[redis]==0.62.0
+
+# Data Quality
+great-expectations==1.17.0
+
+# Testing
+pytest==9.0.3
+httpx==0.28.1

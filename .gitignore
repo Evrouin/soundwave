@@ -35,3 +35,5 @@ metabase_data/
 # Temp
 /tmp/
 *.parquet
+
+/docs
