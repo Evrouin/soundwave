@@ -1,6 +1,8 @@
-"""FastAPI mood classification API (FR-SRV-01 through FR-SRV-04)."""
+"""Soundwave Mood API.
+
+Serves mood classifications for Spotify tracks via REST endpoints.
+"""
 import os
-import sys
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -14,47 +16,49 @@ _mood_descriptions: dict = {}
 
 
 @app.on_event("startup")
-def load_data():
-    """Load track mood data and mood descriptions."""
+def _load_data():
+    """Load track mood data and mood descriptions at startup."""
     global _mood_data, _mood_descriptions
 
     try:
         df = pd.read_parquet(FEAST_PARQUET)
         _mood_data = df.set_index("track_id").to_dict("index")
-        print(f"Loaded {len(_mood_data)} tracks")
     except Exception as e:
         print(f"Warning: Could not load mood data: {e}")
 
-    # Load mood descriptions from config
     try:
-        sys.path.insert(0, "/app/dags")
-        from mood_config import GENRE_SUB_MOODS
-        for family, moods in GENRE_SUB_MOODS.items():
-            for mood_name, mood_def in moods.items():
-                _mood_descriptions[mood_name] = mood_def["description"]
-    except Exception as e:
-        print(f"Warning: Could not load mood descriptions: {e}")
+        from soundwave.config.mood_config import GENRE_SUB_MOODS
+        for moods in GENRE_SUB_MOODS.values():
+            for name, defn in moods.items():
+                _mood_descriptions[name] = defn["description"]
+    except Exception:
+        pass
 
 
 @app.get("/health")
 def health():
-    """Health check endpoint (FR-SRV-04)."""
+    """Return service health status."""
     return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 
 @app.get("/mood/{track_id}")
 def get_mood(track_id: str):
-    """Return mood classification for a track (FR-SRV-01, FR-SRV-02)."""
+    """Return mood classification for a given track ID.
+
+    Raises:
+        HTTPException: 404 if track_id is not found.
+    """
     if track_id not in _mood_data:
         raise HTTPException(status_code=404, detail=f"Track '{track_id}' not found")
-    t = _mood_data[track_id]
-    mood = t["mood_cluster"]
+
+    track = _mood_data[track_id]
+    mood_label = track.get("mood_cluster", "Unknown")
     return {
         "track_id": track_id,
-        "genre_family": t.get("genre_family", "Unknown"),
-        "mood_label": mood,
-        "mood_description": _mood_descriptions.get(mood, ""),
-        "danceability": round(float(t["danceability"]), 4),
-        "energy": round(float(t["energy"]), 4),
-        "valence": round(float(t["valence"]), 4),
+        "genre_family": track.get("genre_family", "Unknown"),
+        "mood_label": mood_label,
+        "mood_description": _mood_descriptions.get(mood_label, ""),
+        "danceability": round(float(track["danceability"]), 4),
+        "energy": round(float(track["energy"]), 4),
+        "valence": round(float(track["valence"]), 4),
     }
