@@ -9,4 +9,8 @@ RUN pip install --no-cache-dir \
     s3fs==2026.4.0 \
     scikit-learn==1.6.1 \
     joblib==1.5.1 \
-    feast[redis]==0.62.0
+    feast[redis]==0.62.0 \
+    && pip install --no-cache-dir "uvicorn>=0.37.0"
+
+COPY --chown=airflow:root soundwave/ /opt/airflow/soundwave/
+ENV PYTHONPATH="/opt/airflow:${PYTHONPATH}"
