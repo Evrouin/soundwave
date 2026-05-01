@@ -2,7 +2,7 @@
 
 End-to-end music analytics and mood-recommendation platform powered by Spotify data, Delta Lake, and ML.
 
-Ingests ~114K Spotify tracks, transforms them through a Medallion architecture (Bronze → Silver → Gold), classifies every track into one of 10 universal moods and 50 genre-specific sub-labels, and serves results through a REST API and BI dashboard.
+Ingests ~114K Spotify tracks from the [Spotify Tracks Dataset](https://www.kaggle.com/datasets/maharshipandya/-spotify-tracks-dataset) by Maharshi Pandya, transforms them through a Medallion architecture (Bronze → Silver → Gold), classifies every track into one of 10 universal moods and 50 genre-specific sub-labels, and serves results through a REST API and BI dashboard.
 
 ## Architecture
 
