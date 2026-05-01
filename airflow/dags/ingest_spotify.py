@@ -1,7 +1,7 @@
-"""
-DAG: ingest_spotify
-Daily ingestion from the Spotify API into the bronze Delta Lake layer.
-Runs at 06:00 UTC every day.
+"""Spotify API daily ingestion DAG.
+
+Incremental ingestion of new releases and audio features from the
+Spotify Web API. Runs daily at 06:00 UTC.
 """
 from airflow.decorators import dag, task
 from pendulum import datetime
@@ -15,30 +15,14 @@ from pendulum import datetime
     tags=["soundwave", "ingestion", "spotify"],
 )
 def ingest_spotify():
-    @task()
-    def authenticate() -> str:
-        """Authenticate with the Spotify API and return an access token."""
-        raise NotImplementedError("Implement Spotify OAuth")
+    """Fetch new releases from Spotify API and write to bronze Delta table."""
 
     @task()
-    def fetch_new_releases(token: str) -> str:
-        """Fetch new album/track releases from Spotify."""
-        raise NotImplementedError("Implement new releases fetch")
+    def fetch_and_load():
+        """Authenticate, fetch new releases, and load to bronze."""
+        raise NotImplementedError("Spotify API ingestion not yet implemented")
 
-    @task()
-    def fetch_audio_features(token: str, releases: str) -> str:
-        """Fetch audio features for the newly released tracks."""
-        raise NotImplementedError("Implement audio features fetch")
-
-    @task()
-    def load_to_bronze(releases: str, features: str):
-        """Write raw Spotify data into bronze Delta Lake."""
-        raise NotImplementedError("Implement bronze Delta Lake write")
-
-    token = authenticate()
-    releases = fetch_new_releases(token)
-    features = fetch_audio_features(token, releases)
-    load_to_bronze(releases, features)
+    fetch_and_load()
 
 
 ingest_spotify()
