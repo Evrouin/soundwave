@@ -1,0 +1,49 @@
+version: 2
+
+models:
+  - name: dim_track
+    description: Track dimension with audio features and mood cluster.
+    columns:
+      - name: track_id
+        description: Primary key for tracks.
+        tests:
+          - not_null
+          - unique
+
+  - name: dim_artist
+    description: SCD Type 2 artist dimension tracking historical changes.
+    columns:
+      - name: artist_sk
+        description: Surrogate key for artist dimension.
+        tests:
+          - not_null
+          - unique
+
+  - name: dim_genre
+    description: Genre dimension.
+    columns:
+      - name: genre_id
+        description: Primary key for genres.
+        tests:
+          - not_null
+          - unique
+
+  - name: fact_streams
+    description: Fact table capturing stream events.
+    columns:
+      - name: stream_id
+        description: Primary key for stream events.
+        tests:
+          - not_null
+          - unique
+      - name: mood_cluster
+        description: Assigned mood cluster for the stream.
+        tests:
+          - accepted_values:
+              values: ['energetic', 'melancholic', 'hype', 'chill', 'acoustic', 'intense']
+
+  - name: agg_genre_trends
+    description: Aggregated genre trends by date.
+
+  - name: agg_artist_profiles
+    description: Aggregated artist profile metrics.
