@@ -5,12 +5,7 @@ import os
 import pandas as pd
 from deltalake import DeltaTable, write_deltalake
 
-from soundwave.config.mood_config import (
-    GENRE_FAMILY_MAP,
-    GENRE_SUB_MOODS,
-    UNIVERSAL_MOODS,
-    classify_universal_mood,
-)
+from soundwave.config.mood_config import GENRE_FAMILY_MAP, GENRE_SUB_MOODS, classify_universal_mood
 from soundwave.config.paths import Paths
 from soundwave.config.storage import StorageConfig
 
@@ -121,9 +116,7 @@ class MoodClassifier:
         df["tempo_norm"] = ((df["tempo"] - 50) / 150).clip(0, 1)
         df["genre_family"] = df["track_genre"].str.lower().map(GENRE_FAMILY_MAP).fillna("Pop")
 
-        df["mood_cluster"] = df.apply(
-            lambda r: _score_mood(r, GENRE_SUB_MOODS.get(r["genre_family"], {})), axis=1
-        )
+        df["mood_cluster"] = df.apply(lambda r: _score_mood(r, GENRE_SUB_MOODS.get(r["genre_family"], {})), axis=1)
         df["mood"] = df.apply(
             lambda r: classify_universal_mood(
                 energy=r.get("energy", 0.5),
@@ -142,30 +135,19 @@ class MoodClassifier:
         )
 
         os.makedirs(feast_data_path, exist_ok=True)
-        feast_df = df[["track_id", "mood_cluster", "mood", "genre_family",
-                        "danceability", "energy", "valence"]].copy()
+        feast_df = df[["track_id", "mood_cluster", "mood", "genre_family", "danceability", "energy", "valence"]].copy()
         feast_df["event_timestamp"] = pd.Timestamp.now(tz="UTC")
         feast_path = os.path.join(feast_data_path, "track_features.parquet")
         feast_df.to_parquet(feast_path, index=False)
 
         mood_map = df.set_index("track_id")["mood_cluster"]
 
-        dim_track = DeltaTable(
-            f"{Paths.GOLD_BASE}/dim_track", storage_options=self._opts
-        ).to_pandas()
+        dim_track = DeltaTable(f"{Paths.GOLD_BASE}/dim_track", storage_options=self._opts).to_pandas()
         dim_track["mood_cluster"] = dim_track["track_id"].map(mood_map)
-        write_deltalake(
-            f"{Paths.GOLD_BASE}/dim_track", dim_track,
-            mode="overwrite", storage_options=self._opts,
-        )
+        write_deltalake(f"{Paths.GOLD_BASE}/dim_track", dim_track, mode="overwrite", storage_options=self._opts)
 
-        fact = DeltaTable(
-            f"{Paths.GOLD_BASE}/fact_streams", storage_options=self._opts
-        ).to_pandas()
+        fact = DeltaTable(f"{Paths.GOLD_BASE}/fact_streams", storage_options=self._opts).to_pandas()
         fact["mood_cluster"] = fact["track_id"].map(mood_map)
-        write_deltalake(
-            f"{Paths.GOLD_BASE}/fact_streams", fact,
-            mode="overwrite", storage_options=self._opts,
-        )
+        write_deltalake(f"{Paths.GOLD_BASE}/fact_streams", fact, mode="overwrite", storage_options=self._opts)
 
         return feast_path

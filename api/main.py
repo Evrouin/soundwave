@@ -2,6 +2,7 @@
 
 Serves mood classifications for Spotify tracks via REST endpoints.
 """
+
 import os
 from datetime import datetime, timezone
 
@@ -28,6 +29,7 @@ def _load_data():
 
     try:
         from soundwave.config.mood_config import GENRE_SUB_MOODS
+
         for moods in GENRE_SUB_MOODS.values():
             for name, defn in moods.items():
                 _mood_descriptions[name] = defn["description"]

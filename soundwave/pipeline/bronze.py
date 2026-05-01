@@ -36,10 +36,5 @@ class BronzeLoader:
             df = df.drop(columns=["Unnamed: 0"])
         df["ingestion_timestamp"] = datetime.now(timezone.utc)
         df["source"] = "kaggle"
-        write_deltalake(
-            Paths.BRONZE_TRACKS,
-            df,
-            mode="overwrite",
-            storage_options=self.storage.to_dict(),
-        )
+        write_deltalake(Paths.BRONZE_TRACKS, df, mode="overwrite", storage_options=self.storage.to_dict())
         return len(df)

@@ -3,6 +3,7 @@
 Two-tier classification: universal mood (10 labels) + genre sub-label (50 labels).
 Writes to Feast offline store, materializes to Redis, updates gold tables.
 """
+
 import os
 
 from airflow.decorators import dag, task
@@ -24,9 +25,9 @@ def retrain_mood_model():
     @task()
     def train_mood_classifier() -> str:
         """Run two-tier mood classification on all silver tracks."""
-        from soundwave.config.storage import StorageConfig
-        from soundwave.config.paths import Paths
         from soundwave.classifier.mood import MoodClassifier
+        from soundwave.config.paths import Paths
+        from soundwave.config.storage import StorageConfig
 
         classifier = MoodClassifier(StorageConfig())
         return classifier.run(Paths.FEAST_DATA)
@@ -34,9 +35,11 @@ def retrain_mood_model():
     @task()
     def materialize_feast_features(feast_path: str):
         """Apply Feast definitions and materialize to Redis online store."""
+        from datetime import datetime as dt
+        from datetime import timedelta, timezone
+        from importlib.util import module_from_spec, spec_from_file_location
+
         from feast import FeatureStore
-        from importlib.util import spec_from_file_location, module_from_spec
-        from datetime import datetime as dt, timezone, timedelta
 
         store = FeatureStore(repo_path=FEAST_REPO)
 

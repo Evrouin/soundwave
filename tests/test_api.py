@@ -1,6 +1,7 @@
 """Tests for the FastAPI mood API."""
-import sys
+
 import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "airflow", "dags"))
@@ -10,6 +11,7 @@ from fastapi.testclient import TestClient
 
 def test_health():
     from main import app
+
     client = TestClient(app)
     r = client.get("/health")
     assert r.status_code == 200
@@ -20,6 +22,7 @@ def test_health():
 
 def test_mood_not_found():
     from main import app
+
     client = TestClient(app)
     r = client.get("/mood/nonexistent_track_id")
     assert r.status_code == 404

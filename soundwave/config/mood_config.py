@@ -1,37 +1,44 @@
 """Mood classification configuration: genre mappings, sub-mood definitions, and universal mood rules."""
 
-import pandas as pd
-
-
 UNIVERSAL_MOODS = {
-    "Aggressive":  {"description": "Intense, angry, and raw"},
-    "Euphoric":    {"description": "Joyful, uplifting, peak happiness"},
-    "Energetic":   {"description": "High-energy, pumped, and powerful"},
-    "Groovy":      {"description": "Rhythmic, funky, and head-nodding"},
-    "Uplifting":   {"description": "Hopeful, inspiring, and triumphant"},
-    "Relaxed":     {"description": "Calm, feel-good, and easy-going"},
-    "Romantic":    {"description": "Warm, intimate, and tender"},
+    "Aggressive": {"description": "Intense, angry, and raw"},
+    "Euphoric": {"description": "Joyful, uplifting, peak happiness"},
+    "Energetic": {"description": "High-energy, pumped, and powerful"},
+    "Groovy": {"description": "Rhythmic, funky, and head-nodding"},
+    "Uplifting": {"description": "Hopeful, inspiring, and triumphant"},
+    "Relaxed": {"description": "Calm, feel-good, and easy-going"},
+    "Romantic": {"description": "Warm, intimate, and tender"},
     "Melancholic": {"description": "Sad, reflective, and bittersweet"},
-    "Dark":        {"description": "Brooding, moody, and ominous"},
-    "Dreamy":      {"description": "Atmospheric, floating, and ethereal"},
+    "Dark": {"description": "Brooding, moody, and ominous"},
+    "Dreamy": {"description": "Atmospheric, floating, and ethereal"},
 }
 
 
-def classify_universal_mood(energy, valence, danceability, acousticness,
-                            instrumentalness, tempo_norm, loudness_norm,
-                            speechiness, liveness, mode, genre_family="Pop"):
+def classify_universal_mood(
+    energy,
+    valence,
+    danceability,
+    acousticness,
+    instrumentalness,
+    tempo_norm,
+    loudness_norm,
+    speechiness,
+    liveness,
+    mode,
+    genre_family="Pop",
+):
     """Rule-based mood classification with genre affinity bias."""
     scores = {
-        "Aggressive":  0,
-        "Euphoric":    0,
-        "Energetic":   0,
-        "Groovy":      0,
-        "Uplifting":   0,
-        "Relaxed":     0,
-        "Romantic":    0,
+        "Aggressive": 0,
+        "Euphoric": 0,
+        "Energetic": 0,
+        "Groovy": 0,
+        "Uplifting": 0,
+        "Relaxed": 0,
+        "Romantic": 0,
         "Melancholic": 0,
-        "Dark":        0,
-        "Dreamy":      0,
+        "Dark": 0,
+        "Dreamy": 0,
     }
 
     if energy > 0.75 and valence < 0.35:
@@ -85,16 +92,16 @@ def classify_universal_mood(energy, valence, danceability, acousticness,
         scores["Dreamy"] += 4
 
     genre_bias = {
-        "Metal/Hardcore":    {"Aggressive": 4, "Dark": 3},
-        "Electronic/EDM":    {"Energetic": 3, "Euphoric": 2},
-        "Jazz/Soul":         {"Groovy": 4, "Romantic": 3},
+        "Metal/Hardcore": {"Aggressive": 4, "Dark": 3},
+        "Electronic/EDM": {"Energetic": 3, "Euphoric": 2},
+        "Jazz/Soul": {"Groovy": 4, "Romantic": 3},
         "Classical/Ambient": {"Dreamy": 4, "Melancholic": 3},
-        "Folk/Country":      {"Relaxed": 3, "Romantic": 3},
-        "Latin/World":       {"Groovy": 3, "Euphoric": 3},
-        "R&B/Funk":          {"Groovy": 4, "Romantic": 3},
-        "Hip-Hop/Rap":       {"Dark": 3, "Aggressive": 2},
-        "Rock/Alternative":  {"Energetic": 2, "Dark": 2},
-        "Pop":               {},
+        "Folk/Country": {"Relaxed": 3, "Romantic": 3},
+        "Latin/World": {"Groovy": 3, "Euphoric": 3},
+        "R&B/Funk": {"Groovy": 4, "Romantic": 3},
+        "Hip-Hop/Rap": {"Dark": 3, "Aggressive": 2},
+        "Rock/Alternative": {"Energetic": 2, "Dark": 2},
+        "Pop": {},
     }
     for mood, bonus in genre_bias.get(genre_family, {}).items():
         scores[mood] += bonus

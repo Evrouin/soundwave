@@ -1,9 +1,11 @@
 """Train K-Means (k=6) on silver audio features, assign mood labels, save to MinIO."""
+
 import sys
-from pyspark.sql import SparkSession
-from pyspark.ml.feature import VectorAssembler, StandardScaler
+
 from pyspark.ml.clustering import KMeans
-from pyspark.sql.functions import udf, col
+from pyspark.ml.feature import StandardScaler, VectorAssembler
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import col, udf
 from pyspark.sql.types import StringType
 
 version = sys.argv[1] if len(sys.argv) > 1 else "1"
@@ -43,8 +45,10 @@ mood_map = spark.sparkContext.broadcast(cluster_mood)
 assign_mood = udf(lambda cluster: mood_map.value.get(cluster, "unknown"), StringType())
 
 predictions = model.transform(scaled).withColumn("mood_label", assign_mood(col("cluster")))
-predictions.select("track_id", "mood_label", *FEATURE_COLS) \
+(
+    predictions.select("track_id", "mood_label", *FEATURE_COLS)
     .write.format("delta").mode("overwrite").save("s3a://soundwave/gold/mood_predictions")
+)
 
 # --- Save model ---
 model.write().overwrite().save(MODEL_PATH)

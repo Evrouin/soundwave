@@ -3,6 +3,7 @@
 Daily transformation: deduplicate, enforce schema, validate audio feature
 ranges, build SCD Type 2 artist dimension, and run data quality checks.
 """
+
 from airflow.decorators import dag, task
 from pendulum import datetime
 

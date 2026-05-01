@@ -3,6 +3,7 @@
 Daily build of 6 gold tables from silver: dim_track, dim_artist,
 dim_genre, fact_streams, agg_genre_trends, agg_artist_profiles.
 """
+
 from airflow.decorators import dag, task
 from pendulum import datetime
 

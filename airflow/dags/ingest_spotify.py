@@ -3,6 +3,7 @@
 Incremental ingestion of new releases and audio features from the
 Spotify Web API. Runs daily at 06:00 UTC.
 """
+
 from airflow.decorators import dag, task
 from pendulum import datetime
 

@@ -11,22 +11,31 @@ from deltalake import DeltaTable, write_deltalake
 from soundwave.config.paths import Paths
 from soundwave.config.storage import StorageConfig
 
-RANGE_COLS = [
-    "danceability", "energy", "valence", "acousticness",
-    "instrumentalness", "speechiness", "liveness",
-]
+RANGE_COLS = ["danceability", "energy", "valence", "acousticness", "instrumentalness", "speechiness", "liveness"]
 
 TRACK_SCHEMA: dict[str, str] = {
-    "track_id": "str", "track_name": "str", "artists": "str",
-    "album_name": "str", "track_genre": "str",
-    "popularity": "Int64", "duration_ms": "Int64",
+    "track_id": "str",
+    "track_name": "str",
+    "artists": "str",
+    "album_name": "str",
+    "track_genre": "str",
+    "popularity": "Int64",
+    "duration_ms": "Int64",
     "explicit": "bool",
-    "danceability": "float64", "energy": "float64", "valence": "float64",
-    "acousticness": "float64", "instrumentalness": "float64",
-    "speechiness": "float64", "liveness": "float64",
-    "tempo": "float64", "loudness": "float64",
-    "key": "Int64", "mode": "Int64", "time_signature": "Int64",
-    "ingestion_timestamp": "datetime64[us, UTC]", "source": "str",
+    "danceability": "float64",
+    "energy": "float64",
+    "valence": "float64",
+    "acousticness": "float64",
+    "instrumentalness": "float64",
+    "speechiness": "float64",
+    "liveness": "float64",
+    "tempo": "float64",
+    "loudness": "float64",
+    "key": "Int64",
+    "mode": "Int64",
+    "time_signature": "Int64",
+    "ingestion_timestamp": "datetime64[us, UTC]",
+    "source": "str",
 }
 
 
@@ -64,9 +73,7 @@ class SilverTransformer:
                 tracks = tracks[(tracks[col] >= 0.0) & (tracks[col] <= 1.0)]
         tracks = tracks[tracks["tempo"].notna()]
 
-        write_deltalake(
-            Paths.SILVER_TRACKS, tracks, mode="overwrite", storage_options=opts,
-        )
+        write_deltalake(Paths.SILVER_TRACKS, tracks, mode="overwrite", storage_options=opts)
         return tracks
 
     def build_artist_dimension(self) -> pd.DataFrame:
@@ -90,12 +97,14 @@ class SilverTransformer:
                 if aid in seen:
                     continue
                 seen.add(aid)
-                rows.append({
-                    "artist_id": aid,
-                    "artist_name": name,
-                    "artist_genre": row["track_genre"],
-                    "artist_popularity": row["popularity"],
-                })
+                rows.append(
+                    {
+                        "artist_id": aid,
+                        "artist_name": name,
+                        "artist_genre": row["track_genre"],
+                        "artist_popularity": row["popularity"],
+                    }
+                )
 
         new = pd.DataFrame(rows)
         new["row_hash"] = new.apply(
@@ -108,27 +117,14 @@ class SilverTransformer:
         try:
             existing = DeltaTable(Paths.SILVER_ARTISTS, storage_options=opts).to_pandas()
             active = existing[existing["is_current"]].copy()
-            merged = new.merge(
-                active[["artist_id", "row_hash"]],
-                on="artist_id", how="left", suffixes=("", "_old"),
-            )
-            changed = merged[
-                merged["row_hash_old"].isna() | (merged["row_hash"] != merged["row_hash_old"])
-            ]
+            merged = new.merge(active[["artist_id", "row_hash"]], on="artist_id", how="left", suffixes=("", "_old"))
+            changed = merged[merged["row_hash_old"].isna() | (merged["row_hash"] != merged["row_hash_old"])]
             changed_ids = set(changed["artist_id"])
 
-            existing.loc[
-                existing["artist_id"].isin(changed_ids) & existing["is_current"],
-                "is_current",
-            ] = False
-            existing.loc[
-                existing["artist_id"].isin(changed_ids) & ~existing["is_current"],
-                "valid_to",
-            ] = now
+            existing.loc[existing["artist_id"].isin(changed_ids) & existing["is_current"], "is_current"] = False
+            existing.loc[existing["artist_id"].isin(changed_ids) & ~existing["is_current"], "valid_to"] = now
 
-            inserts = changed[
-                ["artist_id", "artist_name", "artist_genre", "artist_popularity", "row_hash"]
-            ].copy()
+            inserts = changed[["artist_id", "artist_name", "artist_genre", "artist_popularity", "row_hash"]].copy()
             inserts["valid_from"] = now
             inserts["valid_to"] = pd.Series([pd.NaT] * len(inserts), dtype="datetime64[us, UTC]")
             inserts["is_current"] = True
@@ -142,9 +138,7 @@ class SilverTransformer:
 
         result["valid_from"] = pd.to_datetime(result["valid_from"], utc=True)
         result["valid_to"] = pd.to_datetime(result["valid_to"], utc=True)
-        write_deltalake(
-            Paths.SILVER_ARTISTS, result, mode="overwrite", storage_options=opts,
-        )
+        write_deltalake(Paths.SILVER_ARTISTS, result, mode="overwrite", storage_options=opts)
         return result
 
     def validate(self) -> None:

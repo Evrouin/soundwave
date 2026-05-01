@@ -13,10 +13,7 @@ class StorageConfig:
     """
 
     def __init__(
-        self,
-        endpoint: str = "http://minio:9000",
-        access_key: str | None = None,
-        secret_key: str | None = None,
+        self, endpoint: str = "http://minio:9000", access_key: str | None = None, secret_key: str | None = None
     ) -> None:
         """Initialise storage configuration.
 
@@ -42,8 +39,4 @@ class StorageConfig:
 
     def s3fs_kwargs(self) -> dict[str, object]:
         """Return keyword arguments for ``s3fs.S3FileSystem``."""
-        return {
-            "key": self.access_key,
-            "secret": self.secret_key,
-            "client_kwargs": {"endpoint_url": self.endpoint},
-        }
+        return {"key": self.access_key, "secret": self.secret_key, "client_kwargs": {"endpoint_url": self.endpoint}}
