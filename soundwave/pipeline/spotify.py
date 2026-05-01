@@ -1,4 +1,10 @@
-"""Spotify API client for fetching new releases and audio features."""
+"""Spotify API client for fetching new releases.
+
+Works within Spotify Development Mode restrictions:
+- Search limited to 10 results per request
+- Individual track/album/artist lookups only (no bulk endpoints)
+- No audio-features endpoint access
+"""
 
 import base64
 import os
@@ -44,116 +50,79 @@ class SpotifyClient:
     def _get(self, endpoint: str, params: dict = None) -> dict:
         """Make authenticated GET request with retry and backoff."""
         self._authenticate()
-        for attempt in range(5):
+        for attempt in range(3):
             resp = requests.get(
                 f"{self.API_BASE}/{endpoint}",
                 headers={"Authorization": f"Bearer {self._token}"},
                 params=params,
-                timeout=30,
+                timeout=10,
             )
             if resp.status_code == 429:
-                wait = int(resp.headers.get("Retry-After", 2**attempt))
+                wait = int(resp.headers.get("Retry-After", 3))
+                logger.warning("Rate limited, waiting %ds", wait)
                 time.sleep(wait)
                 continue
             resp.raise_for_status()
             return resp.json()
-        raise RuntimeError(f"Spotify API rate limited after 5 retries: {endpoint}")
+        raise RuntimeError(f"Spotify API rate limited after 3 retries: {endpoint}")
 
-    def fetch_new_releases(self, limit: int = 50, total: int = 200) -> list[dict]:
-        """Fetch new album releases and extract track IDs."""
-        albums = []
-        offset = 0
-        while offset < total:
-            data = self._get("browse/new-releases", {"limit": min(limit, total - offset), "offset": offset})
-            items = data.get("albums", {}).get("items", [])
-            if not items:
-                break
-            albums.extend(items)
-            offset += len(items)
-        return albums
+    def fetch_new_albums(self, total: int = 10) -> list[dict]:
+        """Fetch new albums via search (10 per request, dev mode limit)."""
+        data = self._get("search", {"q": "tag:new", "type": "album", "limit": 10, "offset": 0})
+        return data.get("albums", {}).get("items", [])
 
     def fetch_album_tracks(self, album_id: str) -> list[dict]:
         """Fetch all tracks from an album."""
         data = self._get(f"albums/{album_id}/tracks", {"limit": 50})
         return data.get("items", [])
 
-    def fetch_audio_features(self, track_ids: list[str]) -> list[dict]:
-        """Fetch audio features for up to 100 tracks at a time."""
-        features = []
-        for i in range(0, len(track_ids), 100):
-            batch = track_ids[i : i + 100]
-            data = self._get("audio-features", {"ids": ",".join(batch)})
-            features.extend([f for f in data.get("audio_features", []) if f])
-        return features
-
-    def fetch_tracks(self, track_ids: list[str]) -> list[dict]:
-        """Fetch track metadata for up to 50 tracks at a time."""
-        tracks = []
-        for i in range(0, len(track_ids), 50):
-            batch = track_ids[i : i + 50]
-            data = self._get("tracks", {"ids": ",".join(batch)})
-            tracks.extend(data.get("tracks", []))
-        return tracks
+    def fetch_track(self, track_id: str) -> dict:
+        """Fetch single track metadata (dev mode: individual lookup only)."""
+        return self._get(f"tracks/{track_id}")
 
     def ingest_new_releases(self) -> list[dict]:
-        """Full ingestion: fetch new releases, their tracks, and audio features.
+        """Fetch new release albums, extract tracks, and prepare for bronze.
 
-        Returns list of dicts ready for DataFrame conversion, matching the
-        bronze schema (track_id, track_name, artists, album_name, popularity,
-        duration_ms, audio features).
+        Works within dev mode limits: search (10/req), album tracks, single track lookup.
+        Audio features are not available in dev mode and will be null.
         """
-        albums = self.fetch_new_releases()
+        albums = self.fetch_new_albums()
         logger.info("Fetched %d new release albums", len(albums))
-
-        track_ids = []
-        track_album_map = {}
-        for album in albums:
-            album_tracks = self.fetch_album_tracks(album["id"])
-            for t in album_tracks:
-                track_ids.append(t["id"])
-                track_album_map[t["id"]] = album["name"]
-
-        logger.info("Fetched %d track IDs from albums", len(track_ids))
-        if not track_ids:
-            return []
-
-        tracks = self.fetch_tracks(track_ids)
-        features = self.fetch_audio_features(track_ids)
-        feature_map = {f["id"]: f for f in features}
 
         now = datetime.now(timezone.utc)
         rows = []
-        for t in tracks:
-            if not t:
+        for album in albums:
+            try:
+                album_tracks = self.fetch_album_tracks(album["id"])
+            except Exception as e:
+                logger.warning("Skipping album %s: %s", album.get("name"), e)
                 continue
-            tid = t["id"]
-            af = feature_map.get(tid, {})
-            rows.append(
-                {
-                    "track_id": tid,
+            time.sleep(1)
+            for t in album_tracks:
+                rows.append({
+                    "track_id": t["id"],
                     "track_name": t.get("name", ""),
                     "artists": ";".join(a["name"] for a in t.get("artists", [])),
-                    "album_name": track_album_map.get(tid, t.get("album", {}).get("name", "")),
+                    "album_name": album.get("name", ""),
                     "track_genre": "",
-                    "popularity": t.get("popularity", 0),
+                    "popularity": 0,
                     "duration_ms": t.get("duration_ms", 0),
                     "explicit": t.get("explicit", False),
-                    "danceability": af.get("danceability", None),
-                    "energy": af.get("energy", None),
-                    "key": af.get("key", None),
-                    "loudness": af.get("loudness", None),
-                    "mode": af.get("mode", None),
-                    "speechiness": af.get("speechiness", None),
-                    "acousticness": af.get("acousticness", None),
-                    "instrumentalness": af.get("instrumentalness", None),
-                    "liveness": af.get("liveness", None),
-                    "valence": af.get("valence", None),
-                    "tempo": af.get("tempo", None),
-                    "time_signature": af.get("time_signature", None),
+                    "danceability": None,
+                    "energy": None,
+                    "key": None,
+                    "loudness": None,
+                    "mode": None,
+                    "speechiness": None,
+                    "acousticness": None,
+                    "instrumentalness": None,
+                    "liveness": None,
+                    "valence": None,
+                    "tempo": None,
+                    "time_signature": None,
                     "ingestion_timestamp": now,
                     "source": "spotify",
-                }
-            )
+                })
 
         logger.info("Prepared %d tracks for bronze ingestion", len(rows))
         return rows

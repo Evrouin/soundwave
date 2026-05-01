@@ -1,9 +1,9 @@
 """Spotify API daily ingestion DAG.
 
-Fetches new releases from the Spotify Web API, retrieves audio features,
-and writes to the bronze Delta Lake layer. Runs daily at 06:00 UTC.
+Fetches new releases from the Spotify Web API and writes to bronze Delta table.
+Requires Spotify Extended Quota Mode for full endpoint access.
+Currently disabled — the Kaggle dataset serves as the primary data source.
 """
-
 from airflow.decorators import dag, task
 from pendulum import datetime
 
@@ -11,7 +11,7 @@ from pendulum import datetime
 @dag(
     dag_id="ingest_spotify",
     start_date=datetime(2026, 1, 1),
-    schedule="0 6 * * *",
+    schedule=None,
     catchup=False,
     tags=["soundwave", "ingestion", "spotify"],
 )
@@ -20,27 +20,17 @@ def ingest_spotify():
 
     @task()
     def fetch_and_load():
-        """Authenticate, fetch new releases with audio features, and load to bronze."""
-        import pandas as pd
-        from deltalake import write_deltalake
+        """Authenticate, fetch new releases, and load to bronze.
 
-        from soundwave.config.logger import get_logger
-        from soundwave.config.paths import Paths
-        from soundwave.config.storage import StorageConfig
-        from soundwave.pipeline.spotify import SpotifyClient
-
-        logger = get_logger(__name__)
-        client = SpotifyClient()
-        rows = client.ingest_new_releases()
-
-        if not rows:
-            logger.info("No new releases found")
-            return
-
-        df = pd.DataFrame(rows)
-        storage = StorageConfig()
-        write_deltalake(Paths.BRONZE_TRACKS, df, mode="append", storage_options=storage.to_dict())
-        logger.info("Appended %d rows to bronze", len(df))
+        Requires Spotify Extended Quota Mode for access to:
+        - /browse/new-releases
+        - /audio-features
+        - /tracks (bulk)
+        """
+        raise NotImplementedError(
+            "Spotify API ingestion requires Extended Quota Mode. "
+            "Apply at https://developer.spotify.com/dashboard"
+        )
 
     fetch_and_load()
 
