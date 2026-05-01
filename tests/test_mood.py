@@ -1,10 +1,10 @@
-"""Tests for mood classification logic."""
+"""Tests for mood classification logic and configuration integrity."""
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "airflow", "dags"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from mood_config import (
+from soundwave.config.mood_config import (
     classify_universal_mood,
     UNIVERSAL_MOODS,
     GENRE_FAMILY_MAP,
@@ -13,17 +13,19 @@ from mood_config import (
 
 
 def test_all_genres_mapped():
-    """Every genre in the map should point to a valid family in GENRE_SUB_MOODS."""
+    """Every genre should map to a valid family in GENRE_SUB_MOODS."""
     for genre, family in GENRE_FAMILY_MAP.items():
         assert family in GENRE_SUB_MOODS, f"{genre} → {family} not in GENRE_SUB_MOODS"
 
 
 def test_each_family_has_5_sub_moods():
+    """Each genre family must have exactly 5 sub-mood labels."""
     for family, moods in GENRE_SUB_MOODS.items():
         assert len(moods) == 5, f"{family} has {len(moods)} sub-moods, expected 5"
 
 
 def test_universal_moods_has_10():
+    """There must be exactly 10 universal mood labels."""
     assert len(UNIVERSAL_MOODS) == 10
 
 
