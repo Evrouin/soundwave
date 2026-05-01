@@ -2,6 +2,7 @@
 
 Daily build of 6 gold tables from silver: dim_track, dim_artist,
 dim_genre, fact_streams, agg_genre_trends, agg_artist_profiles.
+Exports to Postgres for Metabase dashboards.
 """
 
 from airflow.decorators import dag, task
@@ -16,7 +17,7 @@ from pendulum import datetime
     tags=["soundwave", "gold", "analytics"],
 )
 def dbt_gold():
-    """Build and validate gold analytics layer."""
+    """Build, validate, and export gold analytics layer."""
 
     @task()
     def build_gold_models():
@@ -37,7 +38,18 @@ def dbt_gold():
 
         GoldBuilder(StorageConfig()).validate()
 
-    build_gold_models() >> run_gold_tests()
+    @task()
+    def export_to_metabase():
+        """Export gold tables to Postgres for Metabase dashboards."""
+        from soundwave.config.storage import StorageConfig
+        from soundwave.pipeline.metabase import MetabaseExporter
+
+        exporter = MetabaseExporter(StorageConfig())
+        counts = exporter.export_all()
+        for table, count in counts.items():
+            print(f"{table}: {count} rows")
+
+    build_gold_models() >> run_gold_tests() >> export_to_metabase()
 
 
 dbt_gold()
