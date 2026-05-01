@@ -1,0 +1,16 @@
+name: silver_checkpoint
+config_version: 1.0
+class_name: Checkpoint
+run_name_template: "silver_validation_%Y%m%d_%H%M%S"
+validations:
+  - batch_request:
+      datasource_name: silver_layer
+      data_asset_name: tracks
+    expectation_suite_name: silver_tracks_suite
+action_list:
+  - name: store_validation_result
+    action:
+      class_name: StoreValidationResultAction
+  - name: update_data_docs
+    action:
+      class_name: UpdateDataDocsAction
