@@ -41,12 +41,13 @@ def ingest_kaggle():
     @task()
     def load_to_bronze(csv_path: str):
         """Load CSV into bronze Delta table with ingestion metadata."""
+        from soundwave.config.logger import get_logger
         from soundwave.config.storage import StorageConfig
         from soundwave.pipeline.bronze import BronzeLoader
 
         loader = BronzeLoader(StorageConfig())
         count = loader.ingest_kaggle(csv_path)
-        print(f"Loaded {count} rows to bronze")
+        get_logger(__name__).info("Loaded %d rows to bronze", count)
 
     csv_path = download_dataset()
     load_to_bronze(csv_path)

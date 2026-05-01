@@ -22,13 +22,15 @@ def dbt_gold():
     @task()
     def build_gold_models():
         """Build all 6 gold dimension and fact tables."""
+        from soundwave.config.logger import get_logger
         from soundwave.config.storage import StorageConfig
         from soundwave.pipeline.gold import GoldBuilder
 
+        logger = get_logger(__name__)
         builder = GoldBuilder(StorageConfig())
         counts = builder.build()
         for table, count in counts.items():
-            print(f"{table}: {count} rows")
+            logger.info("%s: %d rows", table, count)
 
     @task()
     def run_gold_tests():
@@ -41,13 +43,15 @@ def dbt_gold():
     @task()
     def export_to_metabase():
         """Export gold tables to Postgres for Metabase dashboards."""
+        from soundwave.config.logger import get_logger
         from soundwave.config.storage import StorageConfig
         from soundwave.pipeline.metabase import MetabaseExporter
 
+        logger = get_logger(__name__)
         exporter = MetabaseExporter(StorageConfig())
         counts = exporter.export_all()
         for table, count in counts.items():
-            print(f"{table}: {count} rows")
+            logger.info("%s: %d rows", table, count)
 
     build_gold_models() >> run_gold_tests() >> export_to_metabase()
 

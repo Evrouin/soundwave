@@ -9,6 +9,10 @@ from datetime import datetime, timezone
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 
+from soundwave.config.logger import get_logger
+
+logger = get_logger(__name__)
+
 app = FastAPI(title="Soundwave Mood API", version="2.0.0")
 
 FEAST_PARQUET = os.environ.get("FEAST_PARQUET", "/app/feast/data/track_features.parquet")
@@ -25,7 +29,7 @@ def _load_data():
         df = pd.read_parquet(FEAST_PARQUET)
         _mood_data = df.set_index("track_id").to_dict("index")
     except Exception as e:
-        print(f"Warning: Could not load mood data: {e}")
+        logger.warning("Could not load mood data: %s", e)
 
     try:
         from soundwave.config.mood_config import GENRE_SUB_MOODS

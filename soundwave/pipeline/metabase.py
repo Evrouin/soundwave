@@ -5,8 +5,11 @@ import os
 from deltalake import DeltaTable
 from sqlalchemy import create_engine
 
+from soundwave.config.logger import get_logger
 from soundwave.config.paths import Paths
 from soundwave.config.storage import StorageConfig
+
+logger = get_logger(__name__)
 
 
 class MetabaseExporter:
@@ -34,6 +37,6 @@ class MetabaseExporter:
             df = DeltaTable(delta_path, storage_options=self.opts).to_pandas()
             df.to_sql(pg_table, engine, if_exists="replace", index=False)
             counts[pg_table] = len(df)
-            print(f"Exported {pg_table}: {len(df)} rows")
+            logger.info("Exported %s: %d rows", pg_table, len(df))
         engine.dispose()
         return counts

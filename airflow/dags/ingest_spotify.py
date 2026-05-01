@@ -24,21 +24,23 @@ def ingest_spotify():
         import pandas as pd
         from deltalake import write_deltalake
 
+        from soundwave.config.logger import get_logger
         from soundwave.config.paths import Paths
         from soundwave.config.storage import StorageConfig
         from soundwave.pipeline.spotify import SpotifyClient
 
+        logger = get_logger(__name__)
         client = SpotifyClient()
         rows = client.ingest_new_releases()
 
         if not rows:
-            print("No new releases found")
+            logger.info("No new releases found")
             return
 
         df = pd.DataFrame(rows)
         storage = StorageConfig()
         write_deltalake(Paths.BRONZE_TRACKS, df, mode="append", storage_options=storage.to_dict())
-        print(f"Appended {len(df)} rows to bronze")
+        logger.info("Appended %d rows to bronze", len(df))
 
     fetch_and_load()
 

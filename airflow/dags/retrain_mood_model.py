@@ -40,6 +40,7 @@ def retrain_mood_model():
         from importlib.util import module_from_spec, spec_from_file_location
 
         from feast import FeatureStore
+        from soundwave.config.logger import get_logger
 
         store = FeatureStore(repo_path=FEAST_REPO)
 
@@ -50,7 +51,7 @@ def retrain_mood_model():
         store.apply([mod.track, mod.track_features])
         now = dt.now(timezone.utc)
         store.materialize(start_date=now - timedelta(days=365), end_date=now)
-        print("Features materialized to Redis")
+        get_logger(__name__).info("Features materialized to Redis")
 
     feast_path = train_mood_classifier()
     materialize_feast_features(feast_path)

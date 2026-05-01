@@ -7,6 +7,10 @@ from datetime import datetime, timezone
 
 import requests
 
+from soundwave.config.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 class SpotifyClient:
     """Handles Spotify Web API authentication and data fetching."""
@@ -99,7 +103,7 @@ class SpotifyClient:
         duration_ms, audio features).
         """
         albums = self.fetch_new_releases()
-        print(f"Fetched {len(albums)} new release albums")
+        logger.info("Fetched %d new release albums", len(albums))
 
         track_ids = []
         track_album_map = {}
@@ -109,7 +113,7 @@ class SpotifyClient:
                 track_ids.append(t["id"])
                 track_album_map[t["id"]] = album["name"]
 
-        print(f"Fetched {len(track_ids)} track IDs from albums")
+        logger.info("Fetched %d track IDs from albums", len(track_ids))
         if not track_ids:
             return []
 
@@ -151,5 +155,5 @@ class SpotifyClient:
                 }
             )
 
-        print(f"Prepared {len(rows)} tracks for bronze ingestion")
+        logger.info("Prepared %d tracks for bronze ingestion", len(rows))
         return rows
